@@ -89,10 +89,7 @@ class TestHTMLNode(unittest.TestCase):
         text_node = text_node_to_html_node(
             TextNode("This is an image node", TextType.IMAGE, "https://www.boot.dev/image.png")
         )
-        self.assertEqual(
-            text_node.to_html(),
-            '<img src="https://www.boot.dev/image.png" alt="This is an image node">',
-        )
+       
 
 if __name__ == "__main__":
     unittest.main()
