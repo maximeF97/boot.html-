@@ -1,95 +1,168 @@
 import unittest
-from HTMLNode import HTMLNode
-from HTMLNode import leafNode
-from HTMLNode import ParentNode
-from textnode import TextNode, TextType
-from text_to_html import text_node_to_html_node
+from Block_types import (
+    markdown_to_html_node,
+    markdown_to_blocks,
+    block_to_block_type,
+    BlockType,
+)
 
 
-class TestHTMLNode(unittest.TestCase):
+class TestMarkdownToHTML(unittest.TestCase):
+    def test_markdown_to_blocks(self):
+        md = """
+This is **bolded** paragraph
 
-    def test_node_creation(self):
-        node = HTMLNode(tag="div", value="Hello, World!", props={"class": "greeting"})
-        self.assertEqual(node.tag, "div")
-        self.assertEqual(node.value, "Hello, World!")
-        self.assertEqual(node.props, {"class": "greeting"})
+This is another paragraph with _italic_ text and `code` here
+This is the same paragraph on a new line
 
-    def test_props_to_html(self):
-        node = HTMLNode(tag="input", props={"type": "text", "value": "Sample"})
-        self.assertEqual(node.props_to_html(), ' type="text" value="Sample"')
-
-    def test_repr(self):
-        node = HTMLNode(tag="span", value="Hello", props={"class": "text"})
-        self.assertEqual(repr(node), "HTMLNode(tag=span, value=Hello, children=[], props={'class': 'text'})")
-
-    def test_leaf_to_html_p(self):
-        node = leafNode("p", "Hello, world!")
-        self.assertEqual(node.to_html(), "<p>Hello, world!</p>")
-
-    def test_leaf_to_html_a(self):
-        node = leafNode("a", "Click me!", {"href": "https://www.google.com"})
+- This is a list
+- with items
+"""
+        blocks = markdown_to_blocks(md)
         self.assertEqual(
-            node.to_html(),
-            '<a href="https://www.google.com">Click me!</a>',
+            blocks,
+            [
+                "This is **bolded** paragraph",
+                "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
+                "- This is a list\n- with items",
+            ],
         )
 
-    def test_leaf_to_html_no_tag(self):
-        node = leafNode(None, "Hello, world!")
-        self.assertEqual(node.to_html(), "Hello, world!")
+    def test_markdown_to_blocks_newlines(self):
+        md = """
+This is **bolded** paragraph
 
-    def test_to_html_with_children(self):
-        child_node = leafNode("span", "child")
-        parent_node = ParentNode("div", [child_node])
-        self.assertEqual(parent_node.to_html(), "<div><span>child</span></div>")
 
-    def test_to_html_with_grandchildren(self):
-        grandchild_node = leafNode("b", "grandchild")
-        child_node = ParentNode("span", [grandchild_node])
-        parent_node = ParentNode("div", [child_node])
+
+
+This is another paragraph with _italic_ text and `code` here
+This is the same paragraph on a new line
+
+- This is a list
+- with items
+"""
+        blocks = markdown_to_blocks(md)
         self.assertEqual(
-            parent_node.to_html(),
-            "<div><span><b>grandchild</b></span></div>",
+            blocks,
+            [
+                "This is **bolded** paragraph",
+                "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
+                "- This is a list\n- with items",
+            ],
         )
-    def test_parent_to_html_no_tag(self):
-        child_node = leafNode("span", "child")
-        parent_node = ParentNode(None, [child_node])
-        with self.assertRaises(ValueError) as context:
-            parent_node.to_html()
-        self.assertEqual(str(context.exception), "Parent nodes must have a tag")
 
-    def test_text_node_to_html_node_text(self):
-        text_node = text_node_to_html_node(
-            TextNode("This is a text node", TextType.TEXT)
-        )
-        self.assertEqual(text_node.to_html(), "This is a text node")        
-    def test_text_node_to_html_node_bold(self):
-        text_node = text_node_to_html_node(
-            TextNode("This is a bold node", TextType.BOLD)
-        )
-        self.assertEqual(text_node.to_html(), "<strong>This is a bold node</strong>")
-    def test_text_node_to_html_node_italic(self):
-        text_node = text_node_to_html_node(
-            TextNode("This is an italic node", TextType.ITALIC)
-        )
-        self.assertEqual(text_node.to_html(), "<em>This is an italic node</em>")
-    def test_text_node_to_html_node_code(self):
-        text_node = text_node_to_html_node(
-            TextNode("This is a code node", TextType.CODE)
-        )
-        self.assertEqual(text_node.to_html(), "<code>This is a code node</code>")
-    def test_text_node_to_html_node_link(self):
-        text_node = text_node_to_html_node(
-            TextNode("This is a link node", TextType.LINK, "https://www.boot.dev")
-        )
+    def test_block_to_block_types(self):
+        block = "# heading"
+        self.assertEqual(block_to_block_type(block), BlockType.HEADING)
+        block = "```\ncode\n```"
+        self.assertEqual(block_to_block_type(block), BlockType.CODE)
+        block = "> quote\n> more quote"
+        self.assertEqual(block_to_block_type(block), BlockType.QUOTE)
+        block = "- list\n- items"
+        self.assertEqual(block_to_block_type(block), BlockType.ULIST)
+        block = "1. list\n2. items"
+        self.assertEqual(block_to_block_type(block), BlockType.OLIST)
+        block = "paragraph"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_paragraph(self):
+        md = """
+This is **bolded** paragraph
+text in a p
+tag here
+
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
         self.assertEqual(
-            text_node.to_html(),
-            '<a href="https://www.boot.dev">This is a link node</a>',
+            html,
+            "<div><p>This is <b>bolded</b> paragraph text in a p tag here</p></div>",
         )
-    def test_text_node_to_html_node_image(self):
-        text_node = text_node_to_html_node(
-            TextNode("This is an image node", TextType.IMAGE, "https://www.boot.dev/image.png")
+
+    def test_paragraphs(self):
+        md = """
+This is **bolded** paragraph
+text in a p
+tag here
+
+This is another paragraph with _italic_ text and `code` here
+
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><p>This is <b>bolded</b> paragraph text in a p tag here</p><p>This is another paragraph with <i>italic</i> text and <code>code</code> here</p></div>",
         )
-       
+
+    def test_lists(self):
+        md = """
+- This is a list
+- with items
+- and _more_ items
+
+1. This is an `ordered` list
+2. with items
+3. and more items
+
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><ul><li>This is a list</li><li>with items</li><li>and <i>more</i> items</li></ul><ol><li>This is an <code>ordered</code> list</li><li>with items</li><li>and more items</li></ol></div>",
+        )
+
+    def test_headings(self):
+        md = """
+# this is an h1
+
+this is paragraph text
+
+## this is an h2
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><h1>this is an h1</h1><p>this is paragraph text</p><h2>this is an h2</h2></div>",
+        )
+
+    def test_blockquote(self):
+        md = """
+> This is a
+> blockquote block
+
+this is paragraph text
+
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><blockquote>This is a blockquote block</blockquote><p>this is paragraph text</p></div>",
+        )
+
+    def test_code(self):
+        md = """
+```
+This is text that _should_ remain
+the **same** even with inline stuff
+```
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><pre><code>This is text that _should_ remain\nthe **same** even with inline stuff\n</code></pre></div>",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
