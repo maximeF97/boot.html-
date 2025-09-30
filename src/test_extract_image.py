@@ -1,5 +1,5 @@
 import unittest
-from HTMLNode import HTMLNode
+from htmlnode import HTMLNode
 from textnode import TextNode, TextType
 from Extract_image import extract_markdown_images
 from Extract_image import extract_markdown_links

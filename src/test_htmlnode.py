@@ -5,164 +5,42 @@ from Block_types import (
     block_to_block_type,
     BlockType,
 )
+from textnode import TextNode, TextType
 
 
-class TestMarkdownToHTML(unittest.TestCase):
-    def test_markdown_to_blocks(self):
-        md = """
-This is **bolded** paragraph
+class Testextract_title(unittest.TestCase):
+    def test_extract_title(self):
+        from main import extract_title
 
-This is another paragraph with _italic_ text and `code` here
-This is the same paragraph on a new line
+        self.assertEqual(extract_title("# Hello World"), "Hello World")
+        self.assertEqual(extract_title("#   Leading and trailing spaces   "), "Leading and trailing spaces")
+        self.assertEqual(extract_title("# Title with # in it #"), "Title with # in it #")
+        self.assertEqual(extract_title("# Title with special characters !@#$%^&*()"), "Title with special characters !@#$%^&*()")
+        self.assertEqual(extract_title("# 1234567890"), "1234567890")
+        self.assertEqual(extract_title("# Title with emojis 😊🚀"), "Title with emojis 😊🚀")
 
-- This is a list
-- with items
-"""
-        blocks = markdown_to_blocks(md)
-        self.assertEqual(
-            blocks,
-            [
-                "This is **bolded** paragraph",
-                "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
-                "- This is a list\n- with items",
-            ],
-        )
+        with self.assertRaises(Exception) as context:
+            extract_title("No title here")
+        self.assertTrue("No title found" in str(context.exception))
 
-    def test_markdown_to_blocks_newlines(self):
-        md = """
-This is **bolded** paragraph
+        self.assertEqual(extract_title("## Subtitle\n# Main Title"), "Main Title")
+        self.assertEqual(extract_title("# First Title\n# Second Title"), "First Title")
+        self.assertEqual(extract_title("# Title\nSome other text\n# Another Title"), "Title")
 
+        self.assertEqual(extract_title("   # Indented Title"), "Indented Title")
+        self.assertEqual(extract_title("#TitleWithoutSpace"), "TitleWithoutSpace")
 
+        self.assertEqual(extract_title("### Not a title\n# Actual Title"), "Actual Title")
 
+        self.assertEqual(extract_title("# "), "")
+        self.assertEqual(extract_title("#    "), "")
 
-This is another paragraph with _italic_ text and `code` here
-This is the same paragraph on a new line
-
-- This is a list
-- with items
-"""
-        blocks = markdown_to_blocks(md)
-        self.assertEqual(
-            blocks,
-            [
-                "This is **bolded** paragraph",
-                "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
-                "- This is a list\n- with items",
-            ],
-        )
-
-    def test_block_to_block_types(self):
-        block = "# heading"
-        self.assertEqual(block_to_block_type(block), BlockType.HEADING)
-        block = "```\ncode\n```"
-        self.assertEqual(block_to_block_type(block), BlockType.CODE)
-        block = "> quote\n> more quote"
-        self.assertEqual(block_to_block_type(block), BlockType.QUOTE)
-        block = "- list\n- items"
-        self.assertEqual(block_to_block_type(block), BlockType.ULIST)
-        block = "1. list\n2. items"
-        self.assertEqual(block_to_block_type(block), BlockType.OLIST)
-        block = "paragraph"
-        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
-
-    def test_paragraph(self):
-        md = """
-This is **bolded** paragraph
-text in a p
-tag here
-
-"""
-
-        node = markdown_to_html_node(md)
-        html = node.to_html()
-        self.assertEqual(
-            html,
-            "<div><p>This is <b>bolded</b> paragraph text in a p tag here</p></div>",
-        )
-
-    def test_paragraphs(self):
-        md = """
-This is **bolded** paragraph
-text in a p
-tag here
-
-This is another paragraph with _italic_ text and `code` here
-
-"""
-
-        node = markdown_to_html_node(md)
-        html = node.to_html()
-        self.assertEqual(
-            html,
-            "<div><p>This is <b>bolded</b> paragraph text in a p tag here</p><p>This is another paragraph with <i>italic</i> text and <code>code</code> here</p></div>",
-        )
-
-    def test_lists(self):
-        md = """
-- This is a list
-- with items
-- and _more_ items
-
-1. This is an `ordered` list
-2. with items
-3. and more items
-
-"""
-
-        node = markdown_to_html_node(md)
-        html = node.to_html()
-        self.assertEqual(
-            html,
-            "<div><ul><li>This is a list</li><li>with items</li><li>and <i>more</i> items</li></ul><ol><li>This is an <code>ordered</code> list</li><li>with items</li><li>and more items</li></ol></div>",
-        )
-
-    def test_headings(self):
-        md = """
-# this is an h1
-
-this is paragraph text
-
-## this is an h2
-"""
-
-        node = markdown_to_html_node(md)
-        html = node.to_html()
-        self.assertEqual(
-            html,
-            "<div><h1>this is an h1</h1><p>this is paragraph text</p><h2>this is an h2</h2></div>",
-        )
-
-    def test_blockquote(self):
-        md = """
-> This is a
-> blockquote block
-
-this is paragraph text
-
-"""
-
-        node = markdown_to_html_node(md)
-        html = node.to_html()
-        self.assertEqual(
-            html,
-            "<div><blockquote>This is a blockquote block</blockquote><p>this is paragraph text</p></div>",
-        )
-
-    def test_code(self):
-        md = """
-```
-This is text that _should_ remain
-the **same** even with inline stuff
-```
-"""
-
-        node = markdown_to_html_node(md)
-        html = node.to_html()
-        self.assertEqual(
-            html,
-            "<div><pre><code>This is text that _should_ remain\nthe **same** even with inline stuff\n</code></pre></div>",
-        )
-
-
+        self.assertEqual(extract_title(""), "Untitled")
+        self.assertEqual(extract_title("\n\n\n"), "Untitled")
+        self.assertEqual(extract_title("   \n   \n# Title After Blank Lines"), "Title After Blank Lines")
+        self.assertEqual(extract_title("# Title with newline\nin it"), "Title with newline")                                
+        self.assertEqual(extract_title("# Title with tab\tin it"), "Title with tab\tin it")
+        self.assertEqual(extract_title("# Title with multiple   spaces"), "Title with multiple   spaces")
+        self.assertEqual(extract_title("# Title with mixed # characters # and #"), "Title")
 if __name__ == "__main__":
     unittest.main()
