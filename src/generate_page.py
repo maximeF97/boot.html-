@@ -2,7 +2,7 @@ import os
 from gencontent import generate_page
 
 
-def generate_page_recursive(dir_path_content, template_path, dir_path_public):
+def generate_page_recursive(dir_path_content, template_path, dir_path_public, basepath):
     
 
     for root, dirs, files in os.walk(dir_path_content):
@@ -16,4 +16,4 @@ def generate_page_recursive(dir_path_content, template_path, dir_path_public):
                 )
                 output_dir = os.path.dirname(output_file_path)
                 os.makedirs(output_dir, exist_ok=True)
-                generate_page(content_file_path, template_path, output_file_path)
+                generate_page(content_file_path, template_path, output_file_path, basepath)
